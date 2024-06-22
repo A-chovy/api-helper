@@ -232,7 +232,7 @@ public class CurlUtil {
                                     fieldType.equalsToText("long") || fieldType.equalsToText("java.lang.Long")) {
                                 suppleName = "0";
                             } else if (fieldType.equalsToText("java.lang.String")) {
-                                suppleName = "";
+                                suppleName = "\"\"";
                             }
                             String fieldName = field.getName();
                             // 判断类型，字符串类型取""，long、int类型取数字0，集合类型取[]，map类型取{}
