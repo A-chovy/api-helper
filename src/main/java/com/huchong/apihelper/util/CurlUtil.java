@@ -21,9 +21,13 @@ import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.huchong.apihelper.util.Constants.URL_MAP;
 
 /**
  * @author huchong
@@ -43,11 +47,35 @@ public class CurlUtil {
     private static final String ADDR_APP = "https://hongkong-victoria-app-qa.weizhipin.com";
     private static final String ADDR_ADMIN = "https://hk-admin-qa.weizhipin.com";
 
+    private static final Map<String, String> DEFAULT_MAP = new HashMap();
+
     private static final List<String> NEED_TICKET_LIST = new ArrayList<>();
 
     static {
         NEED_TICKET_LIST.add("OPTIONAL");
         NEED_TICKET_LIST.add("MUST");
+        DEFAULT_MAP.put("web", ADDR_WEB);
+        DEFAULT_MAP.put("app", ADDR_APP);
+        DEFAULT_MAP.put("admin", ADDR_ADMIN);
+    }
+
+    /**
+     * 根据选择的环境取出对应的addr
+     *
+     * @param env 环境
+     * @return addr
+     */
+    public static String getUrl(String env) {
+        String chooseType = Constants.getChooseType();
+        if (chooseType == null || "".equals(chooseType)) {
+            // 没有选择默认为qa环境
+            DEFAULT_MAP.get(env);
+        }
+        Map<String, String> map = URL_MAP.get(chooseType);
+        if (map == null) {
+            return "";
+        }
+        return map.get(env);
     }
 
     /**
@@ -193,11 +221,25 @@ public class CurlUtil {
                     if (psiClass != null) {
                         PsiField[] fields = psiClass.getFields();
                         for (int i = 0; i < fields.length; i++) {
-                            String fieldName = fields[i].getName();
+                            PsiField field = fields[i];
+                            PsiType fieldType = field.getType();
+                            String suppleName = "";
+                            if (fieldType.getCanonicalText().startsWith("java.util.List")) {
+                                suppleName = "[]";
+                            } else if (fieldType.getCanonicalText().startsWith("java.util.Map")) {
+                                suppleName = "{}";
+                            } else if (fieldType.equalsToText("int") || fieldType.equalsToText("java.lang.Integer") ||
+                                    fieldType.equalsToText("long") || fieldType.equalsToText("java.lang.Long")) {
+                                suppleName = "0";
+                            } else if (fieldType.equalsToText("java.lang.String")) {
+                                suppleName = "";
+                            }
+                            String fieldName = field.getName();
+                            // 判断类型，字符串类型取""，long、int类型取数字0，集合类型取[]，map类型取{}
                             if (i == fields.length - 1) {
-                                bodyText.append("\"").append(fieldName).append("\"").append(": ").append("\n");
+                                bodyText.append("\"").append(fieldName).append("\"").append(": ").append(suppleName).append("\n");
                             } else {
-                                bodyText.append("\"").append(fieldName).append("\"").append(": ").append(",").append("\n");
+                                bodyText.append("\"").append(fieldName).append("\"").append(": ").append(suppleName).append(",").append("\n");
                             }
                         }
                     }
@@ -233,13 +275,13 @@ public class CurlUtil {
                 String requestMappingValue = ((PsiExpression) value).getText();
                 // 处理获取到的RequestMapping注解值，如"WEB_REQUEST_PREFIX + \"/candidate\""
                 if (requestMappingValue.contains("APP_REQUEST_PREFIX")) {
-                    pathRes.append(ADDR_APP);
+                    pathRes.append(getUrl("app"));
                     PLAT_FORM.set(0);
                 } else if (requestMappingValue.contains("WEB_REQUEST_PREFIX")) {
-                    pathRes.append(ADDR_WEB);
+                    pathRes.append(getUrl("web"));
                     PLAT_FORM.set(1);
                 } else {
-                    pathRes.append(ADDR_ADMIN);
+                    pathRes.append(getUrl("admin"));
                     PLAT_FORM.set(1);
                 }
 
