@@ -1,20 +1,11 @@
 package com.huchong.apihelper.ui;
 
 import com.huchong.apihelper.util.Constants;
-import com.huchong.apihelper.util.CurlUtil;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.application.ApplicationManager;
 
 import javax.swing.*;
-import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.awt.event.ActionListener;
 
 /**
  * @author huchong
@@ -29,7 +20,13 @@ public class SelectUi extends JDialog{
     private JButton next;
     private JPanel choosePanel;
 
+    private ActionListener nextButtonListener;
+
     public SelectUi() {
+    }
+
+    public void setNextButtonListener(ActionListener listener) {
+        this.nextButtonListener = listener;
     }
 
     public SelectUi(AnActionEvent event) {
@@ -61,28 +58,12 @@ public class SelectUi extends JDialog{
         next.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String curl = CurlUtil.buildCurl(event);
                 setVisible(false);
-                // 将Curl命令复制到剪贴板
-                StringSelection selection = new StringSelection(curl);
-                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                clipboard.setContents(selection, selection);
-                // 显示提示消息
-                Notification notification = new Notification("Api-Helper", "Curl Copied", "Curl command has been copied to clipboard", NotificationType.INFORMATION);
-                Notifications.Bus.notify(notification);
-                // 定时器，在 UI 线程上操作通知
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            notification.expire();
-                            timer.cancel();
-                        }
-                    }, 3000); // 3秒后关闭通知
-                });
+                // 在点击 Next 按钮时触发监听器
+                if (nextButtonListener != null) {
+                    nextButtonListener.actionPerformed(e);
+                }
             }
         });
-
     }
 }
